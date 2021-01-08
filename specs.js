@@ -36,6 +36,19 @@ test('Select From OrderBy with comparator', () => {
 	).to(Matchers.matchRows([1], [2]));
 });
 
+test('Select From OrderBy with extractor', () => {
+	const values = [
+		{ size: 2 },
+		{ size: 1 }
+	];
+	
+	const sizeExtract = (it) => it.size;
+	
+	expect(
+		select('*').from(values).orderBy(sizeExtract).eval()
+	).to(Matchers.matchRows([1], [2]));
+});
+
 test('Select From OrderBy with value', () => {
 	const values = [
 		{ size: 2 },

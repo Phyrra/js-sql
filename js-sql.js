@@ -113,7 +113,19 @@ class OrderByContext {
 						o = -1;
 					}
 				} else if (isFunction(order.sort)) {
-					o = order.sort(a, b);
+					if (order.sort.length === 1) {
+						const lhs = order.sort(a);
+						const rhs = order.sort(b);
+						if (lhs > rhs) {
+							o = 1;
+						} else if (lhs < rhs) {
+							o = -1;
+						}
+					} else if (order.sort.length === 2) {
+						o = order.sort(a, b);
+					} else {
+						throw 'bad sorting function';
+					}
 				} else {
 					throw 'unknown order type';
 				}
