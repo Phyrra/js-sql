@@ -55,8 +55,19 @@ test('Select From OrderBy with multiple', () => {
 	];
 	
 	expect(
-		select('*').from(values).orderBy('size', 'other').eval()
+		select('*').from(values).orderBy('size').orderBy('other').eval()
 	).to(Matchers.matchRows([1, 1], [1, 2], [2, 1]));
+});
+
+test('Select From OrderBy with direction', () => {
+	const values = [
+		{ size: 1 },
+		{ size: 2 }
+	];
+	
+	expect(
+		select('*').from(values).orderBy('size', 'desc').eval()
+	).to(Matchers.matchRows([2], [1]));
 });
 
 run();

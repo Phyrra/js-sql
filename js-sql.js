@@ -43,8 +43,8 @@ class FromContext {
 	    return new WhereContext(this, condition);
     }
   
-    orderBy(...order) {
-	    return new OrderByContext(this, order);
+    orderBy(order, dir) {
+	    return new OrderByContext(this, order, dir);
     }
 	
 	_getRawValues() {
@@ -66,8 +66,8 @@ class WhereContext {
 		this._condition = condition;
 	}
 	
-	orderBy(...order) {
-		return new OrderByContext(this, order);
+	orderBy(order, dir) {
+		return new OrderByContext(this, order, dir);
 	}
 	
 	_getRawValues() {
@@ -85,31 +85,41 @@ class WhereContext {
 }
 
 class OrderByContext {
-	constructor(parent, orders) {
+	constructor(parent, order, dir) {
 		this._parent = parent;
-		this._orders = orders;
+		this._orders = [];
+		this.orderBy(order, dir);
+	}
+	
+	orderBy(order, dir) {
+		if (dir != null && (dir !== 'asc' && dir !== 'desc')) {
+			throw 'unknown order direction';
+		}
+		
+		this._orders.push({ sort: order, asc: dir !== 'desc' });
+		return this;
 	}
 	
 	_getRawValues() {
 		return this._parent._getRawValues().slice().sort((a, b) => {
 			for (let order of this._orders) {
 				let o = 0;
-				if (typeof order === 'string') {
-					const lhs = get(a, order);
-					const rhs = get(b, order);
+				if (typeof order.sort === 'string') {
+					const lhs = get(a, order.sort);
+					const rhs = get(b, order.sort);
 					if (lhs > rhs) {
 						o = 1;
 					} else if (lhs < rhs) {
 						o = -1;
 					}
-				} else if (isFunction(order)) {
-					o = order(a, b);
+				} else if (isFunction(order.sort)) {
+					o = order.sort(a, b);
 				} else {
 					throw 'unknown order type';
 				}
 				
 				if (o !== 0) {
-					return o;
+					return order.asc ? o : -o;
 				}
 			}
 			return 0;
