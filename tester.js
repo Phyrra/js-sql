@@ -2,18 +2,33 @@ const isFunction = (fn) => fn && {}.toString.call(fn) === '[object Function]';
 
 const tests = [];
 
-const test = (name, fn) => tests.push({ name: name, fn: fn });
+const test = (name, fn) => tests.push({ name: name, fn: fn, ignore: false });
+const itest = (name, fn) => tests.push({ name: name, fn: fn, ignore: true });
 
-const run = (n) => {
-	if (n != null) {
-		tests[n].fn();
+const run = (...n) => {
+	if (n.length > 0) {
+		n.forEach(i => {
+			const prefix = `Test '${tests[i].name}' (${i}):`;
+			try {
+				tests[i].fn();
+				console.log(`${prefix} Success`);
+			} catch (e) {
+				console.log(`${prefix} Failed with '${e}'`);
+			}
+		});
 		return;
 	}
 	
 	let success = 0;
 	let fail = 0;
+	let ignore = 0;
 	tests.forEach((test, i) => {
-		const prefix = `Test '${test.name}' (${i + 1}/${tests.length}):`
+		const prefix = `Test '${test.name}' (${i + 1}/${tests.length}):`;
+		if (test.ignore) {
+			++ignore;
+			console.log(`${prefix} Skipped`);
+			return;
+		}
 		try {
 			test.fn();
 			++success;
@@ -29,83 +44,102 @@ const run = (n) => {
 	} else {
 		console.log(`Failed: ${fail}`);
 	}
+	if (ignore > 0) {
+		console.log(`Skipped: ${ignore}`);
+	}
 }
 
-class Matcher {
+class Expectation {
 	constructor(actual) {
 		this._actual = actual;
 	}
 	
-	toEqual(expected) {
-		if (this._actual === expected) {
-			return true;
-		}
-		
-		throw `expected ${this._actual} to equal ${expected}`;
-	}
-	
-	toMatch(expected) {
-		if (this._actual == expected) {
-			return true;
-		}
-		
-		throw `expected ${this._actual} to match ${expected}`;
-	}
-	
-	toMatchElements(...elements) {
-		if (elements.length != this._actual.length) {
-			throw `expected array with length ${elements.length} but got ${this._actual.length}`;
-		}
-		
-		return elements.every((el, i) => {
-			if (isFunction(el)) {
-				if (el(this._actual[i])) {
-					return true;
-				}
-				
-				throw `expected ${this._actual[i]} to match`;
-			} else {
-				if (el == this._actual[i]) {
-					return true;
-				}
-				
-				throw `expected ${this._actual[i]} to match ${el}`;
-			}
-		});
-	}
-	
-	toMatchRows(...rows) {
-		if (rows.length != this._actual.length) {
-			throw `expected ${rows.length} but got ${this._actual.length}`;
-		}
-		
-		return rows.every((row, r) => {
-			const actualRow = this._actual[r];
-			return row.every((col, c) => {
-				const actualCol = actualRow[c];
-				
-				if (isFunction(col)) {
-					if (col(actualCol)) {
-						return true;
-					}
-					
-					throw `expected ${actualCol} to match`;
-				} else {
-					if (col == actualCol) {
-						return true;
-					}
-					
-					throw `expected ${actualCol} to match ${col}`;
-				}
-			});
-		});
+	to(matcher) {
+		return matcher(this._actual);
 	}
 }
 
-const expect = (actual) => new Matcher(actual);
+const Matchers = {
+	equal: (exected) => {
+		return (actual) => {
+			if (actual === expected) {
+				return true;
+			}
+		
+			throw `expected ${actual} to equal ${expected}`;
+		};
+	},
+	
+	match: (expected) => {
+		return (actual) => {
+		    if (actual == expected) {
+			    return true;
+		    }
+		
+		    throw `expected ${actual} to match ${expected}`;
+		};
+	},
+	
+	matchElements: (...elements) => {
+		return (actual) => {
+			if (elements.length != actual.length) {
+				throw `expected array with length ${elements.length} but got ${actual.length}`;
+			}
+		
+			return elements.every((el, i) => {
+				if (isFunction(el)) {
+					if (el(actual[i])) {
+						return true;
+					}
+				
+					throw `expected ${actual[i]} to match`;
+				} else {
+					if (el == this._actual[i]) {
+						return true;
+					}
+				
+					throw `expected ${actual[i]} to match ${el}`;
+				}
+			});
+		};
+	},
+	
+	matchRows: (...rows) => {
+		return (actual) => {
+			if (rows.length != actual.length) {
+				throw `expected ${rows.length} but got ${actual.length}`;
+			}
+		
+			return rows.every((row, r) => {
+				const actualRow = actual[r];
+				return row.every((col, c) => {
+					const actualCol = actualRow[c];
+				
+					if (isFunction(col)) {
+						if (col(actualCol)) {
+							return true;
+						}
+					
+						throw `expected ${actualCol} to match`;
+					} else {
+						if (col == actualCol) {
+							return true;
+						}
+					
+						throw `expected ${actualCol} to match ${col}`;
+					}
+				});
+			});
+		};
+	}
+};
+
+const expect = (actual) => new Expectation(actual);
 
 module.exports = {
 	test: test,
+	itest: itest,
 	run: run,
-	expect: expect
+	expect: expect,
+	Matchers: Matchers
 };

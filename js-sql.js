@@ -84,7 +84,6 @@ class WhereContext {
 	}
 }
 
-
 class OrderByContext {
 	constructor(parent, orders) {
 		this._parent = parent;
@@ -92,7 +91,7 @@ class OrderByContext {
 	}
 	
 	_getRawValues() {
-		return this._parent._getRawValues().sort((a, b) => {
+		return this._parent._getRawValues().slice().sort((a, b) => {
 			for (let order of this._orders) {
 				let o = 0;
 				if (typeof order === 'string') {
@@ -114,7 +113,7 @@ class OrderByContext {
 				}
 			}
 			return 0;
-		}).slice();
+		});
 	}
 	
 	_getSelectedValues(entries) {
