@@ -37,6 +37,7 @@ class FromContext {
     constructor(parent, source) {
         this._parent = parent;
 	    this._source = source;
+		this._joinedSources = [];
     }
   
     where(condition) {
@@ -47,8 +48,37 @@ class FromContext {
 	    return new OrderByContext(this, order, dir);
     }
 	
+	join(source) {
+		return new InnerJoinContext(this, source);
+	}
+	
+	innerJoin(source) {
+		return new InnerJoinContext(this, source);
+	}
+	
+	leftJoin(source) {
+		return new LeftJoinContext(this, source);
+	}
+	
+	rightJoin(source) {
+		return new RightJoinContext(this, source);
+	}
+	
+	outerJoin(source) {
+		return new OuterJoinContext(this, source);
+	}
+	
+	crossJoin(source) {
+		new CrossJoinContext(this, source);
+		return this;
+	}
+	
+	_addJoinedSource(join) {
+		this._joinedSources.push(join);
+	}
+	
 	_getRawValues() {
-		return this._source;
+		return this._joinedSources.reduce((result, source) => source._evalJoin(result), this._source);
 	}
 	
 	_getSelectedValues(entries) {
@@ -144,6 +174,147 @@ class OrderByContext {
 	
 	eval() {
 		return this._getSelectedValues(this._getRawValues());
+	}
+}
+
+class InnerJoinContext {
+	constructor(parent, source) {
+		this._parent = parent;
+		this._source = source;
+		this._parent._addJoinedSource(this);
+		this._condition = (lhs, rhs) => false;
+	}
+	
+	on(condition) {
+		this._condition = condition;
+		return this._parent;
+	}
+	
+	_evalJoin(lhs) {
+		return lhs
+			.map(row =>
+				this._source
+					.filter(r => this._condition(row, r))
+					.map(r => Object.assign({}, row, r))
+			)
+			.reduce((all, it) => all.concat(it), []);
+	}
+}
+
+class LeftJoinContext {
+	constructor(parent, source) {
+		this._parent = parent;
+		this._source = source;
+		this._parent._addJoinedSource(this);
+		this._condition = (lhs, rhs) => false;
+	}
+	
+	on(condition) {
+		this._condition = condition;
+		return this._parent;
+	}
+	
+	_evalJoin(lhs) {
+	    return lhs
+		    .map(row => {
+			    const joined = this._source
+				    .filter(r => this._condition(row, r))
+				    .map(r => Object.assign({}, row, r));
+					
+				if (joined.length === 0) {
+					return [row];
+				}
+				return joined;
+		    })
+		    .reduce((all, it) => all.concat(it), []);
+	}
+}
+
+class RightJoinContext {
+	constructor(parent, source) {
+		this._parent = parent;
+		this._source = source;
+		this._parent._addJoinedSource(this);
+		this._condition = (lhs, rhs) => false;
+	}
+	
+	on(condition) {
+		this._condition = condition;
+		return this._parent;
+	}
+	
+	_evalJoin(lhs) {
+        return this._source
+	        .map(row => {
+		        const joined = lhs
+			        .filter(r => this._condition(r, row))
+			        .map(r => Object.assign({}, r, row));
+				
+			    if (joined.length === 0) {
+				    return [row];
+			    }
+			    return joined;
+	        })
+	        .reduce((all, it) => all.concat(it), []);
+	}
+}
+
+class OuterJoinContext {
+	constructor(parent, source) {
+		this._parent = parent;
+		this._source = source;
+		this._parent._addJoinedSource(this);
+		this._condition = (lhs, rhs) => false;
+	}
+	
+	on(condition) {
+		this._condition = condition;
+		return this._parent;
+	}
+	
+	_evalJoin(lhs) {
+        const leftJoin = lhs
+	        .map(row => {
+		        const joined = this._source
+			        .filter(r => this._condition(row, r))
+			        .map(r => Object.assign({}, row, r));
+				
+			    if (joined.length === 0) {
+				    return [row];
+			    }
+			    return joined;
+	        })
+	        .reduce((all, it) => all.concat(it), []);
+			
+		const rightJoinRest = this._source
+			.map(row => {
+	            const joined = lhs
+		            .filter(r => this._condition(r, row))
+		            .map(r => Object.assign({}, r, row));
+			
+		        if (joined.length === 0) {
+			        return row;
+		        }
+		        return null;
+			})
+			.filter(row => row != null);
+			
+		return leftJoin.concat(rightJoinRest);
+	}
+}
+
+class CrossJoinContext {
+	constructor(parent, source) {
+		this._parent = parent;
+		this._source = source;
+		this._parent._addJoinedSource(this);
+		this._condition = (lhs, rhs) => false;
+	}
+	
+	_evalJoin(lhs) {
+        return lhs
+	        .map(row => this._source.map(r => Object.assign({}, row, r)))
+	        .reduce((all, it) => all.concat(it), []);
 	}
 }
 

@@ -107,7 +107,7 @@ const Matchers = {
 	matchRows: (...rows) => {
 		return (actual) => {
 			if (rows.length != actual.length) {
-				throw `expected ${rows.length} but got ${actual.length}`;
+				throw `expected ${rows.length} rows but got ${actual.length}`;
 			}
 		
 			return rows.every((row, r) => {

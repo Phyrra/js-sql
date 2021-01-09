@@ -13,6 +13,7 @@ console.log(
 	select('value', 'size')
 		.from(values)
 		.where((entry) => entry.size > 2)
-		.orderBy(sizeCompare, 'value')
+		.orderBy(sizeCompare)
+		.orderBy('value')
 		.eval()
 );
