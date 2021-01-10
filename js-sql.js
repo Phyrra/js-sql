@@ -14,22 +14,22 @@ class SelectContext {
   	    return new FromContext(this, source);
     }
   
-    _getValues(entry) {
+    _getValues(row) {
         return this._values
-			.map(value => {
+			.map((value, i) => {
 	        	if (typeof value === 'string') {
 	            	if (value === '*') {
-						return Object.values(entry);
+						return row;
 		        	}
 
-	  	        	return [get(entry, value)];
+	  	        	return { value: get(row, value) };
 	        	} else if (isFunction(value)) {
-	            	return [value(entry)];
+	            	return { [`fn${i}`]: value(row) };
 	        	}
 
 	        	throw 'unknown value type';
 	    	})
-			.reduce((all, it) => all.concat(it), []);
+			.reduce((all, it) => Object.assign(all, it), {});
     }
 }
 

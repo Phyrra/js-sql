@@ -9,7 +9,7 @@ test('Select From', () => {
 	
 	expect(
 		select('*').from(values).eval()
-	).to(Matchers.matchRows(['a'], ['b']));
+	).to(Matchers.matchRows({ value: 'a' }, { value: 'b' }));
 });
 
 test('Select From Where', () => {
@@ -20,7 +20,7 @@ test('Select From Where', () => {
 	
 	expect(
 		select('*').from(values).where((e) => e.size > 1).eval()
-	).to(Matchers.matchRows([2]));
+	).to(Matchers.matchRows({ size: 2 }));
 });
 
 test('Select From OrderBy with comparator', () => {
@@ -33,7 +33,7 @@ test('Select From OrderBy with comparator', () => {
 	
 	expect(
 		select('*').from(values).orderBy(sizeCompare).eval()
-	).to(Matchers.matchRows([1], [2]));
+	).to(Matchers.matchRows({ size: 1 }, { size: 2 }));
 });
 
 test('Select From OrderBy with extractor', () => {
@@ -46,7 +46,7 @@ test('Select From OrderBy with extractor', () => {
 	
 	expect(
 		select('*').from(values).orderBy(sizeExtract).eval()
-	).to(Matchers.matchRows([1], [2]));
+	).to(Matchers.matchRows({ size: 1 }, { size: 2 }));
 });
 
 test('Select From OrderBy with value', () => {
@@ -57,7 +57,7 @@ test('Select From OrderBy with value', () => {
 	
 	expect(
 		select('*').from(values).orderBy('size').eval()
-	).to(Matchers.matchRows([1], [2]));
+	).to(Matchers.matchRows({ size: 1 }, { size: 2 }));
 });
 
 test('Select From OrderBy with multiple', () => {
@@ -69,7 +69,7 @@ test('Select From OrderBy with multiple', () => {
 	
 	expect(
 		select('*').from(values).orderBy('size').orderBy('other').eval()
-	).to(Matchers.matchRows([1, 1], [1, 2], [2, 1]));
+	).to(Matchers.matchRows({ size: 1, other: 1 }, { size: 1, other: 2 }, { size: 2, other: 1 }));
 });
 
 test('Select From OrderBy with direction', () => {
@@ -80,7 +80,7 @@ test('Select From OrderBy with direction', () => {
 	
 	expect(
 		select('*').from(values).orderBy('size', 'desc').eval()
-	).to(Matchers.matchRows([2], [1]));
+	).to(Matchers.matchRows({ size: 2 }, { size: 1 }));
 });
 
 test('Select From Join', () =>  {
@@ -99,7 +99,7 @@ test('Select From Join', () =>  {
 	
 	expect(
 		select('*').from(lhs).join(rhs).on((lhs, rhs) => lhs.id === rhs.id).eval()
-	).to(Matchers.matchRows(['a', 1], ['a', 2], ['b', 3]));
+	).to(Matchers.matchRows({ id: 'a', value: 1 }, { id: 'a', value: 2 }, { id: 'b', value: 3 }));
 });
 
 test('Select From LeftJoin', () =>  {
@@ -118,7 +118,7 @@ test('Select From LeftJoin', () =>  {
 	
 	expect(
 		select('*').from(lhs).leftJoin(rhs).on((lhs, rhs) => lhs.id === rhs.id).eval()
-	).to(Matchers.matchRows(['a', 1], ['a', 2], ['b', 3], ['c']));
+	).to(Matchers.matchRows({ id: 'a', value: 1 }, { id: 'a', value: 2 }, { id: 'b', value: 3 }, { id: 'c' }));
 });
 
 test('Select From RightJoin', () =>  {
@@ -137,7 +137,7 @@ test('Select From RightJoin', () =>  {
 	
 	expect(
 		select('*').from(lhs).rightJoin(rhs).on((lhs, rhs) => lhs.id === rhs.id).eval()
-	).to(Matchers.matchRows(['a', 1], ['a', 2], ['b', 3], ['d', 4]));
+	).to(Matchers.matchRows({ id: 'a', value: 1 }, { id: 'a', value: 2 }, { id: 'b', value: 3 }, { id: 'd', value: 4 }));
 });
 
 test('Select From OuterJoin', () =>  {
@@ -156,7 +156,7 @@ test('Select From OuterJoin', () =>  {
 	
 	expect(
 		select('*').from(lhs).outerJoin(rhs).on((lhs, rhs) => lhs.id === rhs.id).eval()
-	).to(Matchers.matchRows(['a', 1], ['a', 2], ['b', 3], ['c'], ['d', 4]));
+	).to(Matchers.matchRows({ id: 'a', value: 1 }, { id: 'a', value: 2 }, { id: 'b', value: 3 }, { id: 'c' }, { id: 'd', value: 4 }));
 });
 
 test('Select From CrossJoin', () => {
@@ -172,7 +172,7 @@ test('Select From CrossJoin', () => {
 	
 	expect(
 		select('*').from(lhs).crossJoin(rhs).eval()
-	).to(Matchers.matchRows(['a', 'c'], ['a', 'd'], ['b', 'c'], ['b', 'd']));
-})
+	).to(Matchers.matchRows({ lhs: 'a', rhs: 'c' }, { lhs: 'a', rhs: 'd' }, { lhs: 'b', rhs: 'c' }, { lhs: 'b', rhs: 'd' }));
+});
 
 run();

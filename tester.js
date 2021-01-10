@@ -47,7 +47,7 @@ const run = (...n) => {
 	if (ignore > 0) {
 		console.log(`Skipped: ${ignore}`);
 	}
-}
+};
 
 class Expectation {
 	constructor(actual) {
@@ -112,21 +112,22 @@ const Matchers = {
 		
 			return rows.every((row, r) => {
 				const actualRow = actual[r];
-				return row.every((col, c) => {
-					const actualCol = actualRow[c];
+				return Object.keys(row).every(colKey => {
+					const expectedCol = row[colKey];
+					const actualCol = actualRow[colKey];
 				
-					if (isFunction(col)) {
-						if (col(actualCol)) {
+					if (isFunction(expectedCol)) {
+						if (expectedCol(actualCol)) {
 							return true;
 						}
 					
-						throw `expected ${actualCol} to match`;
+						throw `expected ${actualCol} to match for ${colKey}`;
 					} else {
-						if (col == actualCol) {
+						if (expectedCol == actualCol) {
 							return true;
 						}
 					
-						throw `expected ${actualCol} to match ${col}`;
+						throw `expected ${actualCol} to match ${expectedCol} for ${colKey}`;
 					}
 				});
 			});
