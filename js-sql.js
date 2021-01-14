@@ -22,7 +22,7 @@ class SelectContext {
 						return row;
 		        	}
 
-	  	        	return { value: get(row, value) };
+	  	        	return { [`${value}`]: get(row, value) };
 	        	} else if (isFunction(value)) {
 	            	return { [`fn${i}`]: value(row) };
 	        	}

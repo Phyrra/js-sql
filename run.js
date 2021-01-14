@@ -18,3 +18,16 @@ console.log(
 		.limit(2)
 		.eval()
 );
+
+const spec = (name, fn) => {
+	const tests = [];
+	
+	const test = () => {console.log('bla');};
+	
+	fn();
+};
+
+spec('asdf', () => {
+	test();
+});
+

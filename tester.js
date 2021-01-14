@@ -1,51 +1,100 @@
 const isFunction = (fn) => fn && {}.toString.call(fn) === '[object Function]';
 
-const tests = [];
+const _suites = [];
+let _currentSuite = null;
 
-const test = (name, fn) => tests.push({ name: name, fn: fn, ignore: false });
-const itest = (name, fn) => tests.push({ name: name, fn: fn, ignore: true });
-
-const run = (...n) => {
-	if (n.length > 0) {
-		n.forEach(i => {
-			const prefix = `Test '${tests[i].name}' (${i}):`;
-			try {
-				tests[i].fn();
-				console.log(`${prefix} Success`);
-			} catch (e) {
-				console.log(`${prefix} Failed with '${e}'`);
-			}
-		});
-		return;
+class Suite {
+	constructor(name, fn) {
+		this._name = name;
+		this._fn = fn;
+		this._specs = [];
 	}
 	
-	let success = 0;
-	let fail = 0;
-	let ignore = 0;
-	tests.forEach((test, i) => {
-		const prefix = `Test '${test.name}' (${i + 1}/${tests.length}):`;
-		if (test.ignore) {
-			++ignore;
-			console.log(`${prefix} Skipped`);
+	_addSpec(spec) {
+		this._specs.push(spec);
+	}
+	
+	_run(...n) {
+		console.log(this._name);
+		_currentSuite = this;
+		this._fn();
+		
+		if (n.length > 0) {
+			n.forEach(i => {
+				this._specs[i]._run();
+			});
 			return;
 		}
-		try {
-			test.fn();
-			++success;
-			console.log(`${prefix} Success`);
-		} catch (e) {
-			++fail;
-			console.log(`${prefix} Failed with '${e}'`);
+	
+		let success = 0;
+		let fail = 0;
+		let ignore = 0;
+		this._specs.forEach((spec, i) => {
+			const result = spec._run();
+			if (spec._ignore) {
+				++ignore;
+			} else if (result) {
+				++success;
+			}  else {
+				++fail;
+			}
+		});
+		console.log(`\tRan ${this._specs.length} test${this._specs.length === 1 ? '' : 's'}`);
+		if (fail === 0) {
+			console.log('\tSuccess');
+		} else {
+			console.log(`\tFailed: ${fail}`);
 		}
-	});
-	console.log(`Ran ${tests.length} test${tests.length === 1 ? '' : 's'}`);
-	if (fail === 0) {
-		console.log('Success');
-	} else {
-		console.log(`Failed: ${fail}`);
+		if (ignore > 0) {
+			console.log(`\tSkipped: ${ignore}`);
+		}
+		
+		return fail === 0;
 	}
-	if (ignore > 0) {
-		console.log(`Skipped: ${ignore}`);
+}
+
+class Spec {
+	constructor(name, fn, ignore) {
+		this._name = name;
+		this._fn = fn;
+		this._ignore = ignore;
+	}
+	
+	_run() {
+		const prefix = `\t`;
+		if (this._ignore) {
+			console.log(`${prefix}- ${this._name}`);
+			return true;
+		}
+		
+		try {
+			this._fn();
+			console.log('\x1b[32m%s\x1b[0m', `${prefix}✔ ${this._name}`);
+			return true;
+		} catch (e) {
+			console.log('\x1b[31m%s\x1b[0m', `${prefix}× ${this._name}`);
+			console.log(`\t\t${e}`);
+			return false;
+		}
+	}
+}
+
+const suite = (name, fn) => _suites.push(new Suite(name, fn));
+
+const test = (name, fn) => {
+	_currentSuite._addSpec(new Spec(name, fn, false));
+};
+
+const itest = (name, fn) => {
+	_currentSuite._addSpec(new Spec(name, fn, true));
+};
+
+const run = () => {
+	const success = _suites.map(suite => suite._run()).reduce((all, suite) => all && suite, true);
+    if (success) {
+		console.log('-------\nSuccess\n-------');
+	} else {
+		console.log('-------\nFailure\n-------');
 	}
 };
 
@@ -138,6 +187,7 @@ const Matchers = {
 const expect = (actual) => new Expectation(actual);
 
 module.exports = {
+	suite: suite,
 	test: test,
 	itest: itest,
 	run: run,
