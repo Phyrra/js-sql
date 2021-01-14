@@ -175,4 +175,49 @@ test('Select From CrossJoin', () => {
 	).to(Matchers.matchRows({ lhs: 'a', rhs: 'c' }, { lhs: 'a', rhs: 'd' }, { lhs: 'b', rhs: 'c' }, { lhs: 'b', rhs: 'd' }));
 });
 
+test('Select From Join Join', () => {
+	const main = [
+		{ id: 'a' },
+		{ id: 'b' }
+	];
+	
+	const joinA = [
+		{ id: 'a', valueA: 1 },
+		{ id: 'b', valueA: 2 }
+	];
+	
+	const joinB = [
+		{ id: 'a', valueB: 3 },
+		{ id: 'b', valueB: 4 }
+	];
+	
+	const joinCondition = (lhs, rhs) => lhs.id === rhs.id;
+	
+	expect(
+		select('*').from(main).join(joinA).on(joinCondition).join(joinB).on(joinCondition).eval()
+	).to(Matchers.matchRows({ id: 'a', valueA: 1, valueB: 3 }, { id: 'b', valueA: 2, valueB: 4 }));
+});
+
+test('Select From Limit', () => {
+	const values = [];
+	for (let i = 0; i < 10; ++i) {
+		values.push({ value: i });
+	}
+	
+	expect(
+		select('*').from(values).limit(3).eval()
+	).to(Matchers.matchRows({ value: 0 }, { value: 1 }, { value: 2 }));
+});
+
+test('Select From Limit Offset', () => {
+	const values = [];
+	for (let i = 0; i < 10; ++i) {
+		values.push({ value: i });
+	}
+	
+	expect(
+		select('*').from(values).limit(3).offset(2).eval()
+	).to(Matchers.matchRows({ value: 2 }, { value: 3 }, { value: 4 }));
+});
+
 run();

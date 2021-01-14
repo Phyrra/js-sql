@@ -31,6 +31,10 @@ class SelectContext {
 	    	})
 			.reduce((all, it) => Object.assign(all, it), {});
     }
+	
+	_getSelectedValues(entries) {
+		return entries.map(entry => this._getValues(entry));
+	}
 }
 
 class FromContext {
@@ -73,6 +77,10 @@ class FromContext {
 		return this;
 	}
 	
+	limit(number) {
+		return new LimitContext(this, number);
+	}
+	
 	_addJoinedSource(join) {
 		this._joinedSources.push(join);
 	}
@@ -82,7 +90,7 @@ class FromContext {
 	}
 	
 	_getSelectedValues(entries) {
-		return entries.map(entry => this._parent._getValues(entry));
+		return this._parent._getSelectedValues(entries);
 	}
   
     eval() {
@@ -98,6 +106,10 @@ class WhereContext {
 	
 	orderBy(order, dir) {
 		return new OrderByContext(this, order, dir);
+	}
+	
+	limit(number) {
+		return new LimitContext(this, number);
 	}
 	
 	_getRawValues() {
@@ -128,6 +140,10 @@ class OrderByContext {
 		
 		this._orders.push({ sort: order, asc: dir !== 'desc' });
 		return this;
+	}
+	
+	limit(number) {
+		return new LimitContext(this, number);
 	}
 	
 	_getRawValues() {
@@ -315,6 +331,31 @@ class CrossJoinContext {
         return lhs
 	        .map(row => this._source.map(r => Object.assign({}, row, r)))
 	        .reduce((all, it) => all.concat(it), []);
+	}
+}
+
+class LimitContext {
+	constructor(parent, number) {
+		this._parent = parent;
+		this._number = number;
+		this._offset = 0;
+	}
+	
+	offset(offset) {
+		this._offset = offset;
+		return this;
+	}
+	
+	_getRawValues() {
+		return this._parent._getRawValues().slice(this._offset, this._offset + this._number);
+	}
+	
+	_getSelectedValues(entries) {
+		return this._parent._getSelectedValues(entries);
+	}
+	
+	eval() {
+		return this._getSelectedValues(this._getRawValues());
 	}
 }
 

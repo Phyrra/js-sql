@@ -15,5 +15,6 @@ console.log(
 		.where((entry) => entry.size > 2)
 		.orderBy(sizeCompare)
 		.orderBy('value')
+		.limit(2)
 		.eval()
 );
