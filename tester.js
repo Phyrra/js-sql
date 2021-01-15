@@ -7,50 +7,23 @@ class Suite {
 	constructor(name, fn) {
 		this._name = name;
 		this._fn = fn;
-		this._specs = [];
 	}
 	
 	_addSpec(spec) {
 		this._specs.push(spec);
 	}
 	
-	_run(...n) {
-		console.log(this._name);
+	_run() {
+		this._specs = [];
+		
 		_activeSuites.push(this);
 		this._fn();
 		_activeSuites.pop();
 		
-		if (n.length > 0) {
-			n.forEach(i => {
-				this._specs[i]._run();
-			});
-			return;
-		}
-	
-		let success = 0;
-		let fail = 0;
-		let ignore = 0;
-		this._specs.forEach((spec, i) => {
-			const result = spec._run();
-			if (spec._ignore) {
-				++ignore;
-			} else if (result) {
-				++success;
-			}  else {
-				++fail;
-			}
-		});
-		console.log(`\tRan ${this._specs.length} test${this._specs.length === 1 ? '' : 's'}`);
-		if (fail === 0) {
-			console.log('\tSuccess');
-		} else {
-			console.log(`\tFailed: ${fail}`);
-		}
-		if (ignore > 0) {
-			console.log(`\tSkipped: ${ignore}`);
-		}
-		
-		return fail === 0;
+		return {
+			suite: this._name,
+			specs: this._specs.map(spec => spec._run())
+		};
 	}
 }
 
@@ -62,21 +35,22 @@ class Spec {
 	}
 	
 	_run() {
-		const prefix = `\t`;
-		if (this._ignore) {
-			console.log(`${prefix}- ${this._name}`);
-			return true;
-		}
+		const result = {
+			spec: this._name
+		};
 		
-		try {
-			this._fn();
-			console.log('\x1b[32m%s\x1b[0m', `${prefix}✔ ${this._name}`);
-			return true;
-		} catch (e) {
-			console.log('\x1b[31m%s\x1b[0m', `${prefix}× ${this._name}`);
-			console.log(`\t\t${e}`);
-			return false;
+		if (this._ignore) {
+			result.ignore = true;
+		} else {
+			try {
+				this._fn();
+				result.success = true;
+			} catch (e) {
+				result.failure = true;
+				result.error = e;
+			}
 		}
+		return result;
 	}
 }
 
@@ -90,8 +64,48 @@ const itest = (name, fn) => {
 	_activeSuites[_activeSuites.length - 1]._addSpec(new Spec(name, fn, true));
 };
 
+const logSuccess = (text, prefix) => console.log('\x1b[32m%s\x1b[0m', `${prefix ? prefix : ''}✔ ${text}`);
+const logError = (text, prefix) => console.log('\x1b[31m%s\x1b[0m', `${prefix ? prefix : ''}× ${text}`);
+
 const run = () => {
-	const success = _suites.map(suite => suite._run()).reduce((all, suite) => all && suite, true);
+	const results = _suites.map(suite => suite._run());
+	
+	results.forEach(suite => {
+		const suiteSuccess = suite.specs.every(spec => spec.success || spec.ignore);
+		if (suiteSuccess) {
+			logSuccess(suite.suite);
+		} else {
+			logError(suite.suite);
+		}
+		
+		suite.specs.forEach(spec => {
+			if (spec.ignore) {
+				console.log(`\t- ${spec.spec}`);
+			} else if (spec.success) {
+				logSuccess(spec.spec, '\t');
+			} else if (spec.failure) {
+				logError(spec.spec, '\t');
+				if (spec.error) {
+					console.log(`\t\t${spec.error}`);
+				}
+			}
+		});
+		
+		const numSuccess = suite.specs.reduce((sum, spec) => spec.success ? sum + 1 : sum, 0);
+		const numFailure = suite.specs.reduce((sum, spec) => spec.failure ? sum + 1 : sum, 0);
+		const numIgnore = suite.specs.reduce((sum, spec) => spec.ignore ? sum + 1 : sum, 0);
+		console.log(`\tRan ${suite.specs.length} test${suite.specs.length === 1 ? '' : 's'}`);
+		if (numFailure === 0) {
+			console.log('\tSuccess');
+		} else {
+			console.log(`\tFailed: ${numFailure}`);
+		}
+		if (numIgnore > 0) {
+			console.log(`\tSkipped: ${numIgnore}`);
+		}
+	});
+	
+	const success = results.every(suite => suite.specs.every(spec => spec.success || spec.ignore));
     if (success) {
 		console.log('-------\nSuccess\n-------');
 	} else {
