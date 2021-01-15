@@ -1,7 +1,7 @@
 const isFunction = (fn) => fn && {}.toString.call(fn) === '[object Function]';
 
 const _suites = [];
-let _currentSuite = null;
+const _activeSuites = [];
 
 class Suite {
 	constructor(name, fn) {
@@ -16,8 +16,9 @@ class Suite {
 	
 	_run(...n) {
 		console.log(this._name);
-		_currentSuite = this;
+		_activeSuites.push(this);
 		this._fn();
+		_activeSuites.pop();
 		
 		if (n.length > 0) {
 			n.forEach(i => {
@@ -82,11 +83,11 @@ class Spec {
 const suite = (name, fn) => _suites.push(new Suite(name, fn));
 
 const test = (name, fn) => {
-	_currentSuite._addSpec(new Spec(name, fn, false));
+	_activeSuites[_activeSuites.length - 1]._addSpec(new Spec(name, fn, false));
 };
 
 const itest = (name, fn) => {
-	_currentSuite._addSpec(new Spec(name, fn, true));
+	_activeSuites[_activeSuites.length - 1]._addSpec(new Spec(name, fn, true));
 };
 
 const run = () => {
